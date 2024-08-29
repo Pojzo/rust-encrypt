@@ -1,4 +1,5 @@
 /target
 
-encrypted.txt
-decrypted.txt
+encrypted*
+decrypted*
+

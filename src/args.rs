@@ -45,7 +45,6 @@ impl Args {
             .expect("Operation type is required")
             .to_string();
         let operation = OperationType::from_str(&operation_str).expect("Invalid operation type");
-
         Args {
             source_file,
             output_file,

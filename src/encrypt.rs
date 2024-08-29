@@ -21,22 +21,18 @@ fn pad_string(string: &str, chunk_size: usize) -> String {
     return padded;
 }
 
-pub fn split_string_to_chunks(input: &str, chunk_size: usize) -> Vec<String> {
-    let padded = pad_string(input, chunk_size);
-    let iterations = padded.len() / chunk_size;
+fn pad_bytes(data: &mut Vec<u8>, chunk_size: usize) {
+    let data_len = data.len();
+    let target_len = if data_len % chunk_size != 0 {
+        ((data_len / chunk_size) + 1) * chunk_size
+    } else {
+        data_len
+    };
 
-    let mut output: Vec<String> = Vec::with_capacity(iterations);
-
-    for i in 0..iterations {
-        let start = i * chunk_size;
-        let end = (i + 1) * chunk_size;
-
-        let chunk = &padded[start..end];
-        println!("Pushing {}", i);
-        output.push(chunk.to_string());
+    if data_len < target_len {
+        let pad_len = target_len - data_len;
+        data.extend_from_slice(&vec![0; pad_len]);
     }
-
-    return output;
 }
 
 // assumes the input is already padded
@@ -78,21 +74,33 @@ fn encrypt_vec_block(cipher: &Aes128, vec_block: &Vec<u8>) -> Vec<u8> {
     block_generic.to_vec()
 }
 
-fn decrypt_vec_block(cipher: &Aes128, vec_block: &Vec<u8>) -> Result<String, String> {
-    let block_array = match vec_to_array::<16>(vec_block.clone()) {
+fn decrypt_vec_block(cipher: &Aes128, vec_block: &Vec<u8>) -> Result<Vec<u8>, String> {
+    if vec_block.len() != 16 {
+        return Err("Invalid block size".to_string());
+    }
+
+    let block_array: [u8; 16] = match vec_to_array::<16>(vec_block.clone()) {
         Ok(array) => array,
         Err(e) => return Err(e),
     };
 
     let mut block = GenericArray::<u8, U16>::clone_from_slice(&block_array);
+
     cipher.decrypt_block(&mut block);
 
-    let block_vec = block.to_vec();
-    Ok(String::from_utf8_lossy(&block_vec).to_string())
+    let decrypted_bytes = block.to_vec();
+
+    Ok(decrypted_bytes)
 }
 
 pub fn encrypt_data(input: &Vec<u8>) -> Vec<u8> {
-    let chunks = split_vec_to_chunks(input, CHUNK_SIZE);
+    let mut input_copy = input.clone();
+    let original_size = input.len() as u32;
+    println!("Size before padding {}", input_copy.len());
+    pad_bytes(&mut input_copy, CHUNK_SIZE);
+    println!("Size after padding {}", input_copy.len());
+
+    let chunks = split_vec_to_chunks(&input_copy, CHUNK_SIZE);
 
     let key = GenericArray::from(KEY_BYTES);
     let cipher = Aes128::new(&key);
@@ -100,23 +108,58 @@ pub fn encrypt_data(input: &Vec<u8>) -> Vec<u8> {
     let mut result: Vec<u8> = Vec::new();
 
     for chunk in chunks.iter() {
-        let encrypted_string = encrypt_vec_block(&cipher, chunk);
-        result.extend(&encrypted_string);
+        let encrypted_bytes = encrypt_vec_block(&cipher, chunk);
+        result.extend(&encrypted_bytes);
     }
-    return result;
+
+    let size_buffer = original_size.to_be_bytes();
+    println!("Result len: {}", result.len());
+
+    let final_data: Vec<u8> = [&size_buffer[..], &result[..]].concat();
+    println!("Final data len: {}", final_data.len());
+
+    return final_data;
 }
 
-pub fn decrypt_data(input: &Vec<u8>) -> String {
-    let chunks = split_vec_to_chunks(input, CHUNK_SIZE);
+pub fn decrypt_data(input: &Vec<u8>) -> Result<Vec<u8>, String> {
+    if input.len() < 4 {
+        return Err("Failed".to_string());
+    }
+
+    let original_size_bytes: [u8; 4] = match input[0..4].try_into() {
+        Ok(array) => array,
+        Err(_) => return Err("Failed to read original size".to_string()),
+    };
+
+    println!("Original size bytes: {:?}", original_size_bytes);
+    let original_size = u32::from_be_bytes(original_size_bytes) as usize;
+
+    let input_copy = if input.len() > 4 {
+        input[4..].to_vec()
+    } else {
+        Vec::new()
+    };
+
+    let chunks = split_vec_to_chunks(&input_copy, CHUNK_SIZE);
     let key = GenericArray::from(KEY_BYTES);
-    let mut result = String::new();
     let cipher = Aes128::new(&key);
+
+    let mut result = Vec::new();
     for chunk in chunks.iter() {
-        let decrypted_chunk = decrypt_vec_block(&cipher, chunk);
-        match decrypted_chunk {
-            Ok(decrypted) => result.push_str(&decrypted),
-            Err(_e) => eprintln!("Error"),
+        match decrypt_vec_block(&cipher, chunk) {
+            Ok(decrypted) => {
+                println!("Len of decrypted: {}", decrypted.len());
+                result.extend(decrypted);
+            }
+            Err(_e) => eprintln!("Error decrypting chunk"),
         }
     }
-    result.to_string()
+
+    if original_size <= result.len() {
+        result.truncate(original_size);
+    } else {
+        return Err("Error: Original size is larger than result length".to_string());
+    }
+
+    Ok(result)
 }
