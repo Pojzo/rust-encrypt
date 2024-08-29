@@ -5,22 +5,6 @@ use aes::{
 
 use crate::config::{CHUNK_SIZE, KEY_BYTES};
 
-fn pad_string(string: &str, chunk_size: usize) -> String {
-    let target_len = if string.len() % chunk_size != 0 {
-        ((string.len() / chunk_size) + 1) * chunk_size
-    } else {
-        string.len()
-    };
-    let mut padded = string.to_string();
-
-    if string.len() < target_len {
-        let pad_len = target_len - string.len();
-        padded.push_str(&" ".repeat(pad_len));
-    }
-
-    return padded;
-}
-
 fn pad_bytes(data: &mut Vec<u8>, chunk_size: usize) {
     let data_len = data.len();
     let target_len = if data_len % chunk_size != 0 {
@@ -96,9 +80,7 @@ fn decrypt_vec_block(cipher: &Aes128, vec_block: &Vec<u8>) -> Result<Vec<u8>, St
 pub fn encrypt_data(input: &Vec<u8>) -> Vec<u8> {
     let mut input_copy = input.clone();
     let original_size = input.len() as u32;
-    println!("Size before padding {}", input_copy.len());
     pad_bytes(&mut input_copy, CHUNK_SIZE);
-    println!("Size after padding {}", input_copy.len());
 
     let chunks = split_vec_to_chunks(&input_copy, CHUNK_SIZE);
 
@@ -113,10 +95,8 @@ pub fn encrypt_data(input: &Vec<u8>) -> Vec<u8> {
     }
 
     let size_buffer = original_size.to_be_bytes();
-    println!("Result len: {}", result.len());
 
     let final_data: Vec<u8> = [&size_buffer[..], &result[..]].concat();
-    println!("Final data len: {}", final_data.len());
 
     return final_data;
 }
@@ -131,7 +111,6 @@ pub fn decrypt_data(input: &Vec<u8>) -> Result<Vec<u8>, String> {
         Err(_) => return Err("Failed to read original size".to_string()),
     };
 
-    println!("Original size bytes: {:?}", original_size_bytes);
     let original_size = u32::from_be_bytes(original_size_bytes) as usize;
 
     let input_copy = if input.len() > 4 {
@@ -148,7 +127,6 @@ pub fn decrypt_data(input: &Vec<u8>) -> Result<Vec<u8>, String> {
     for chunk in chunks.iter() {
         match decrypt_vec_block(&cipher, chunk) {
             Ok(decrypted) => {
-                println!("Len of decrypted: {}", decrypted.len());
                 result.extend(decrypted);
             }
             Err(_e) => eprintln!("Error decrypting chunk"),

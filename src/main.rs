@@ -1,4 +1,4 @@
-use std::fs::{read_to_string, File};
+use std::fs::File;
 use std::io::{self, Read, Write};
 use std::process;
 
@@ -18,15 +18,6 @@ fn write_bytes_to_file(file_path: &str, data: &Vec<u8>) -> Result<(), io::Error>
 
     // Write the byte data to the file
     file.write_all(data)?;
-
-    Ok(())
-}
-
-fn write_string_to_file(file_path: &str, data: &str) -> Result<(), io::Error> {
-    let bytes = data.as_bytes();
-    let mut file = File::create(file_path)?;
-
-    file.write(bytes);
 
     Ok(())
 }
