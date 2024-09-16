@@ -162,4 +162,15 @@ mod tests {
             assert_eq!(padded_data_len + 4, encrypted.len());
         }
     }
+    #[test]
+    fn decrypt_data_test() {
+        for _ in 0..100 {
+            let data_len = rand::random::<usize>() % 1000;
+            let input: Vec<u8> = (0..data_len).map(|_| rand::random::<u8>()).collect();
+            let encrypted = encrypt_data(&input);
+            let decrypted = decrypt_data(&encrypted).unwrap();
+
+            assert_eq!(input, decrypted);
+        }
+    }
 }
