@@ -141,3 +141,25 @@ pub fn decrypt_data(input: &Vec<u8>) -> Result<Vec<u8>, String> {
 
     Ok(result)
 }
+
+#[cfg(test)]
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_encrypt_data() {
+        for _ in 0..100 {
+            let data_len = rand::random::<usize>() % 1000;
+            let padded_data_len = if data_len % CHUNK_SIZE != 0 {
+                ((data_len / CHUNK_SIZE) + 1) * CHUNK_SIZE
+            } else {
+                data_len
+            };
+
+            let input: Vec<u8> = (0..data_len).map(|_| rand::random::<u8>()).collect();
+            let encrypted = encrypt_data(&input);
+            assert_eq!(padded_data_len + 4, encrypted.len());
+        }
+    }
+}

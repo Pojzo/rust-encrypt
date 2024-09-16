@@ -4,12 +4,12 @@ use std::process;
 
 mod args;
 mod config;
-mod encrypt;
+mod crypto;
 mod operation_type;
 
 use args::Args;
 use byteorder::{LittleEndian, WriteBytesExt};
-use encrypt::{decrypt_data, encrypt_data};
+use crypto::{decrypt_data, encrypt_data};
 use operation_type::OperationType;
 
 fn write_bytes_to_file(file_path: &str, data: &Vec<u8>) -> Result<(), io::Error> {
@@ -23,16 +23,12 @@ fn write_bytes_to_file(file_path: &str, data: &Vec<u8>) -> Result<(), io::Error>
 }
 
 fn read_file_as_bytes(path: &str) -> io::Result<Vec<u8>> {
-    // Open the file
     let mut file = File::open(path)?;
 
-    // Create a buffer to store the file contents
     let mut buffer = Vec::new();
 
-    // Read the file contents into the buffer
     file.read_to_end(&mut buffer)?;
 
-    // Return the buffer containing the file bytes
     Ok(buffer)
 }
 
