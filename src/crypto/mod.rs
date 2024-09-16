@@ -173,4 +173,13 @@ mod tests {
             assert_eq!(input, decrypted);
         }
     }
+    #[test]
+    fn encrypt_decrypt_large_data() {
+        let data_len = 100000;
+        let input: Vec<u8> = (0..data_len).map(|_| rand::random::<u8>()).collect();
+        let encrypted = encrypt_data(&input);
+        let decrypted = decrypt_data(&encrypted).unwrap();
+
+        assert_eq!(input, decrypted);
+    }
 }
