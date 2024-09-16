@@ -13,7 +13,7 @@
 (Should work for all files)
 
 ## How it works
-The AES encryption is uses symmetric encryption, meaning the same shared key is use for both encryption and decryption of data. 
+The AES algorithm uses symmetric encryption, meaning the same shared key is use for both encryption and decryption of data. 
 
 ## Steps
 
