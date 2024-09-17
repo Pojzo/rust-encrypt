@@ -8,3 +8,4 @@ clap = { version = "3", features = ["derive"] }
 aes = "0.8.4"
 byteorder = "1.4"
 rand = "0.8.4"
+flate2 = "1.0"
