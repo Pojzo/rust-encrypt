@@ -13,10 +13,8 @@ use crypto::{decrypt_data, encrypt_data};
 use operation_type::OperationType;
 
 fn write_bytes_to_file(file_path: &str, data: &Vec<u8>) -> Result<(), io::Error> {
-    // Open the file in write mode
     let mut file = File::create(file_path)?;
 
-    // Write the byte data to the file
     file.write_all(data)?;
 
     Ok(())
@@ -32,7 +30,7 @@ fn read_file_as_bytes(path: &str) -> io::Result<Vec<u8>> {
     Ok(buffer)
 }
 
-fn decrypt_file(args: &Args) {
+fn decrypt_file(args: &Args, decompress: bool) {
     let source_file = &args.source_file;
     let file_content;
     let result = read_file_as_bytes(source_file);
@@ -58,7 +56,7 @@ fn decrypt_file(args: &Args) {
     }
 }
 
-fn encrypt_file(args: &Args) {
+fn encrypt_file(args: &Args, compress: bool) {
     let source_file = &args.source_file;
     let file_content;
     let result = read_file_as_bytes(source_file);
@@ -91,7 +89,7 @@ fn main() {
     let args = Args::parse_args();
 
     match args.operation {
-        OperationType::DECRYPT => decrypt_file(&args),
-        OperationType::ENCRYPT => encrypt_file(&args),
+        OperationType::DECRYPT => decrypt_file(&args, args.use_compression),
+        OperationType::ENCRYPT => encrypt_file(&args, args.use_compression),
     };
 }

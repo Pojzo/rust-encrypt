@@ -257,4 +257,20 @@ mod tests {
             assert_eq!(input, decrypted);
         }
     }
+    #[test]
+    fn test_compression_and_encryption_reverse() {
+        for _ in 0..100 {
+            let data_len = rand::random::<usize>() % 1000;
+            let input: Vec<u8> = (0..data_len).map(|_| rand::random::<u8>()).collect();
+
+            let compressed = compress_data(&input);
+            assert!(compressed.is_ok());
+            let compressed = compressed.unwrap();
+            let encrypted = encrypt_data(&compressed);
+            let decrypted = decrypt_data(&encrypted).unwrap();
+            let decompressed = decompress_data(&decrypted).unwrap();
+
+            assert_eq!(input, decompressed);
+        }
+    }
 }
