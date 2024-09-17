@@ -1,11 +1,11 @@
-use std::io::{Cursor, Write};
+use std::io::{Cursor, Read, Write};
 
 use aes::{
     cipher::{consts::U16, generic_array::GenericArray, BlockDecrypt, BlockEncrypt, KeyInit},
     Aes128,
 };
-use flate2::write::ZlibEncoder;
 use flate2::Compression;
+use flate2::{read::GzDecoder, write::ZlibEncoder};
 
 use crate::config::{CHUNK_SIZE, KEY_BYTES};
 
@@ -117,6 +117,17 @@ pub fn compress_data(input: &Vec<u8>) -> Result<Vec<u8>, std::io::Error> {
             let compressed_bytes = e.finish();
             compressed_bytes
         }
+    }
+}
+
+pub fn decompress_data(input: &Vec<u8>) -> Result<Vec<u8>, std::io::Error> {
+    let cursor = Cursor::new(input);
+    let mut d = GzDecoder::new(cursor);
+    let mut s = String::new();
+
+    match d.read_to_string(&mut s) {
+        Ok(_) => Ok(Vec::from(s)),
+        Err(e) => Err(e),
     }
 }
 
