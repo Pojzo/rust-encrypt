@@ -1,10 +1,10 @@
-use std::io::{Cursor, Read, Write};
+use std::io::{self, prelude::*, Cursor};
 
 use aes::{
     cipher::{consts::U16, generic_array::GenericArray, BlockDecrypt, BlockEncrypt, KeyInit},
     Aes128,
 };
-use flate2::Compression;
+use flate2::{bufread::GzEncoder, Compression};
 use flate2::{read::GzDecoder, write::ZlibEncoder};
 
 use crate::config::{CHUNK_SIZE, KEY_BYTES};
@@ -105,30 +105,24 @@ pub fn encrypt_data(input: &Vec<u8>) -> Vec<u8> {
     return final_data;
 }
 
-pub fn compress_data(input: &Vec<u8>) -> Result<Vec<u8>, std::io::Error> {
-    let input_copy = input.clone();
-    // let cursor = Cursor::new(input);
-    let mut e = ZlibEncoder::new(input_copy, Compression::default());
-    let write_result = e.write_all(input);
+pub fn compress_data(input: &Vec<u8>) -> io::Result<Vec<u8>> {
+    let cursor = Cursor::new(input);
+    let mut encoder = GzEncoder::new(cursor, Compression::default());
+    let mut buffer = Vec::new();
 
-    match write_result {
-        Err(e) => Err(e),
-        _ => {
-            let compressed_bytes = e.finish();
-            compressed_bytes
-        }
-    }
+    encoder.read_to_end(&mut buffer)?;
+
+    Ok(buffer)
 }
 
 pub fn decompress_data(input: &Vec<u8>) -> Result<Vec<u8>, std::io::Error> {
     let cursor = Cursor::new(input);
     let mut d = GzDecoder::new(cursor);
-    let mut s = String::new();
+    let mut decompressed = Vec::new();
 
-    match d.read_to_string(&mut s) {
-        Ok(_) => Ok(Vec::from(s)),
-        Err(e) => Err(e),
-    }
+    d.read_to_end(&mut decompressed).unwrap();
+
+    Ok(decompressed)
 }
 
 pub fn decrypt_data(input: &Vec<u8>) -> Result<Vec<u8>, String> {
@@ -211,5 +205,23 @@ mod tests {
         let decrypted = decrypt_data(&encrypted).unwrap();
 
         assert_eq!(input, decrypted);
+    }
+    #[test]
+    fn test_compression() {
+        for _ in 0..100 {
+            let data_len = rand::random::<usize>() % 1000;
+            let input: Vec<u8> = (0..data_len).map(|_| rand::random::<u8>()).collect();
+
+            // let input = Vec::from("Hello world");
+            let compressed = compress_data(&input);
+
+            assert!(compressed.is_ok());
+            let compressed = compressed.unwrap();
+            let decompressed = decompress_data(&compressed);
+
+            assert!(decompressed.is_ok());
+            let decompressed = decompressed.unwrap();
+            assert_eq!(input.len(), decompressed.len());
+        }
     }
 }
