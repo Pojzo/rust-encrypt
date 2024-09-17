@@ -224,4 +224,37 @@ mod tests {
             assert_eq!(input.len(), decompressed.len());
         }
     }
+    #[test]
+    fn test_compression_and_encryption() {
+        let input = Vec::from("Hello world");
+        let encrypted = encrypt_data(&input);
+        let compressed = compress_data(&encrypted);
+
+        assert!(compressed.is_ok());
+        let compressed = compressed.unwrap();
+        let decompressed = decompress_data(&compressed);
+        assert!(decompressed.is_ok());
+
+        let decrypted = decrypt_data(&decompressed.unwrap()).unwrap();
+        assert_eq!(input, decrypted);
+    }
+    #[test]
+    fn tests_compression_and_decryption() {
+        for _ in 0..100 {
+            let data_len = rand::random::<usize>() % 1000;
+            let input: Vec<u8> = (0..data_len).map(|_| rand::random::<u8>()).collect();
+
+            let encrypted = encrypt_data(&input);
+            let compressed = compress_data(&encrypted);
+
+            assert!(compressed.is_ok());
+            let compressed = compressed.unwrap();
+            let decompressed = decompress_data(&compressed);
+
+            assert!(decompressed.is_ok());
+            let decompressed = decompressed.unwrap();
+            let decrypted = decrypt_data(&decompressed).unwrap();
+            assert_eq!(input, decrypted);
+        }
+    }
 }
